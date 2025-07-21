@@ -4,30 +4,39 @@
 set -e
 
 # --- Backend Setup ---
-echo "Building and starting the backend..."
+JAR_FILE="target/shareit-1.0-SNAPSHOT.jar"
 
-# Build the Maven project
-mvn clean install
+if [ ! -f "$JAR_FILE" ]; then
+    echo "JAR file not found. Building the backend..."
+    mvn clean install
+else
+    echo "JAR file found. Skipping build."
+fi
 
-# Run the backend application in the background
-java -jar target/shareit-1.0-SNAPSHOT.jar &
+echo "Starting the backend..."
+java -jar $JAR_FILE &
 
 # --- Wait for Backend ---
 echo "Waiting for backend to start on port 8080..."
 while ! nc -z localhost 8080; do
-  sleep 1 # wait for 1 second before checking again
+  sleep 1
 done
+echo "Backend is up and running!"
 
 # --- Frontend Setup ---
+# The commands inside the parentheses run in a subshell
+(
+  echo "Changing to client directory and starting frontend..."
+  cd client
 
-echo "Starting the frontend..."
-# Navigate to the client directory
-cd client
+  if [ ! -d "node_modules" ]; then
+      echo "node_modules not found. Running npm install..."
+      npm install
+  else
+      echo "node_modules found. Skipping npm install."
+  fi
 
-# Install frontend dependencies
-npm install
+  npm run dev
+)
 
-# Start the Next.js development server
-npm run dev
-
-echo "Startup complete! Backend is running in the background and frontend is running."
+echo "Startup complete! Both frontend and backend are running."
